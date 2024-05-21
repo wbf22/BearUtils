@@ -21,7 +21,7 @@ public class Test {
 
         // Test the RestClient class
         RestClient<Void> client = new RestClient<>((json, type, serializer) -> json, (json, serializer) -> json.toString(), 300000, null);
-        // String response = client.get("https://attractions-api.accessdevelopment-stage.com/v1/attractions/admin/summary/attractions", null, String.class);
+        // String response = client.get("https://test.com", null, String.class);
         // System.out.println(response);
 
         String body = """
@@ -32,7 +32,7 @@ public class Test {
         
         try {
             String response2 = client.post(
-                "https://attractions-api.accessdevelopment-stage.com/v1/order/admin/query?page=0&pageSize=10", 
+                "https://test.com", 
                 Map.of("Content-Type", "application/json"), 
                 body, 
                 String.class
