@@ -12,8 +12,12 @@ public class TestServer extends Server<Void> {
             8080,
             (json, type, serializer) -> json, 
             (json, serializer) -> json.toString(), 
-            null
+            null,
+            300000,
+            "string",
+            300000
         );
+
     }
 
 

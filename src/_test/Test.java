@@ -21,7 +21,7 @@ public class Test {
     public static void main(String[] args) throws Exception {
 
         
-        new TestServer();
+        TestServer testServer = new TestServer();
 
 
 
