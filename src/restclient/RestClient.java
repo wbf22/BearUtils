@@ -206,8 +206,8 @@ public class RestClient<S> {
 
 
     @FunctionalInterface
-    public static interface SerializeLambda<J, S, R, E extends Exception> {
-        R apply(J json, S serializer) throws E;
+    public static interface SerializeLambda<O, S, R, E extends Exception> {
+        R apply(O object, S serializer) throws E;
     }
 
 
