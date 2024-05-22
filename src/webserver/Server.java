@@ -29,10 +29,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class Server<S> implements HttpHandler {
 
@@ -47,17 +51,20 @@ public class Server<S> implements HttpHandler {
     private Map<String, Method> deleteMethods;
     private Map<String, Method> optionsMethods;
     private String path;
+    private int timeout;
 
 
     protected Server (
         int port,
         DeserializeLambda<String, Type, S, Object, Exception> deserializer, 
         SerializeLambda<Object, S, String, Exception> serializer, 
-        S serializerObject
+        S serializerObject,
+        int timeoutMillis
     ) {
         this.deserializer = deserializer;
         this.serializer = serializer;
         this.serializerObject = serializerObject;
+        this.timeout = timeoutMillis;
 
 
         // parse endpoint methods
@@ -117,7 +124,7 @@ public class Server<S> implements HttpHandler {
             server.setExecutor(
                 new ThreadPoolExecutor(
                     2, // core pool size
-                    10, // maximum pool size
+                    20, // maximum pool size
                     60, // keep-alive time for idle threads
                     TimeUnit.SECONDS, // unit for keep-alive time
                     new LinkedBlockingQueue<Runnable>() // work queue
@@ -132,36 +139,50 @@ public class Server<S> implements HttpHandler {
 
     @Override
     public void handle(HttpExchange t) throws IOException {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
 
-        OutputStream os = null;
-        try {
-            Object responseBody = getResponseFromClass(
-                t.getRequestMethod(),
-                t.getRequestURI(), 
-                t.getRequestHeaders(),
-                readInputStream(t.getRequestBody())
-            );
-    
-            if (responseBody == null) {
-                t.sendResponseHeaders(404, -1);
-                return;
+        Future<?> future = executor.submit(() -> {
+            OutputStream os = null;
+            try {
+                Object responseBody = getResponseFromClass(
+                    t.getRequestMethod(),
+                    t.getRequestURI(), 
+                    t.getRequestHeaders(),
+                    readInputStream(t.getRequestBody())
+                );
+        
+                if (responseBody == null) {
+                    t.sendResponseHeaders(404, -1);
+                    return;
+                }
+        
+                String response = this.serializer.apply(responseBody, serializerObject);
+        
+                t.sendResponseHeaders(200, response.length());
+                os = t.getResponseBody();
+                os.write(response.getBytes());
             }
-    
-            String response = this.serializer.apply(responseBody, serializerObject);
-    
-            t.sendResponseHeaders(200, response.length());
-            os = t.getResponseBody();
-            os.write(response.getBytes());
-        }
-        catch(Exception e) {
-            ErrorResponse response = handleErrorResponse(e);
-            t.sendResponseHeaders(response.statusCode, response.body.length());
-            os = t.getResponseBody();
-            os.write(response.body.getBytes());
-        }
-        finally {
-            if (os != null) 
-                os.close();
+            catch(Exception e) {
+                ErrorResponse response = handleErrorResponse(e);
+                t.sendResponseHeaders(response.statusCode, response.body.length());
+                os = t.getResponseBody();
+                os.write(response.body.getBytes());
+                
+            }
+            finally {
+                if (os != null) 
+                    os.close();
+            }
+        });
+
+        try {
+            future.get(60, TimeUnit.SECONDS); // wait for 60 seconds before timing out
+        } catch (TimeoutException e) {
+            t.sendResponseHeaders(408, -1); // send a 408 Request Timeout response
+        } catch (InterruptedException | ExecutionException e) {
+            // handle other exceptions
+        } finally {
+            executor.shutdown(); // make sure to shut down the executor
         }
         
     }
