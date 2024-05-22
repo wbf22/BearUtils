@@ -15,7 +15,8 @@ public class TestServer extends Server<Void> {
             null,
             300000,
             "string",
-            300000
+            300000,
+            20
         );
 
     }

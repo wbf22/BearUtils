@@ -81,9 +81,10 @@ public class Server<S> {
     private Map<String, Method> deleteMethods;
     private Map<String, Method> optionsMethods;
     private String path;
-    private int timeout;
+    private int timeout = 300000; // 5 mins
     private String contentType;
-    private int maxRequestSize;
+    private int maxRequestSize = 5000000; // 5 mb
+    private int maxConnections = 20;
 
 
     protected Server (
@@ -93,7 +94,8 @@ public class Server<S> {
         S serializerObject,
         int timeoutMillis,
         String contentType,
-        int maxRequestSize
+        int maxRequestSize,
+        int maxConnections
     ) {
         this.deserializer = deserializer;
         this.serializer = serializer;
@@ -101,6 +103,7 @@ public class Server<S> {
         this.timeout = timeoutMillis;
         this.contentType = contentType;
         this.maxRequestSize = maxRequestSize;
+        this.maxConnections = maxConnections;
 
 
         // parse endpoint methods
@@ -194,13 +197,11 @@ public class Server<S> {
         // timeout requests
         // rate limiting
 
-        
-
         try (
             ServerSocket serverSocket = new ServerSocket(port);
             ExecutorService executor = new ThreadPoolExecutor(
                 2, // core pool size
-                20, // maximum pool size
+                this.maxConnections, // maximum pool size
                 60, // keep-alive time for idle threads
                 TimeUnit.SECONDS, // unit for keep-alive time
                 new LinkedBlockingQueue<Runnable>() // work queue
