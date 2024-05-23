@@ -5,7 +5,7 @@ Here's a summary of the different single class tools in the repo:
 - RestClient
     - A rest client with standard method GET, POST, PUT, PATCH, DELETE, OPTIONS
 - Server
-    - A server you can extend to expose a rest endpoint. Handles recieving requests and mapping to your defined methods. Ensures against standard DoS attacks with timeouts and max request sizes.
+    - A server you can extend to expose a rest endpoint. Handles recieving requests and mapping to your defined methods. Ensures against standard DoS attacks with timeouts, max request sizes, and rate limiting.
 - ScheduledTask
     - A class you can extend to have a scheduled task be run during your apps lifetime. Supports a fixed and initial delay. 
 

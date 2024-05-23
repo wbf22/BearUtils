@@ -14,6 +14,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -26,11 +27,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 public class Server<S> {
     public static Map<Integer, String> statusCodes = Map.of(
@@ -56,8 +60,8 @@ public class Server<S> {
         "OPTIONS", 200
     );
 
+    private static final Logger log = Logger.getLogger(Server.class.getName());
 
-    
     private DeserializeLambda<String, Type, S, Object, Exception> deserializer;
     private SerializeLambda<Object, S, String, Exception> serializer;
     private S serializerObject; 
@@ -67,12 +71,15 @@ public class Server<S> {
     private Map<String, Method> patchMethods;
     private Map<String, Method> deleteMethods;
     private Map<String, Method> optionsMethods;
+    private Map<InetAddress, Integer> clientRequestCounts = new ConcurrentHashMap<>(); // for rate limiting
+
     private String path;
     private int timeout = 300000; // 5 mins
     private String contentType;
     private int maxRequestSize = 5000000; // 5 mb
     private int maxConnections = 20;
     private boolean serverOn = true;
+    private int maxRequestsPerMinute = 1000;
 
 
     protected Server (
@@ -83,7 +90,8 @@ public class Server<S> {
         int timeoutMillis,
         String contentType,
         int maxRequestSize,
-        int maxConnections
+        int maxConnections,
+        int rateLimitRequestsPerMinute
     ) {
         this.deserializer = deserializer;
         this.serializer = serializer;
@@ -92,6 +100,7 @@ public class Server<S> {
         this.contentType = contentType;
         this.maxRequestSize = maxRequestSize;
         this.maxConnections = maxConnections;
+        this.maxRequestsPerMinute = rateLimitRequestsPerMinute;
 
 
         // parse endpoint methods
@@ -180,14 +189,19 @@ public class Server<S> {
             </body>
             </html>
          */
-        // timeout requests
-        // rate limiting
+        
+        
+        // rate limiter
+        ScheduledExecutorService rateLimiterResetter = Executors.newScheduledThreadPool(1);
+        rateLimiterResetter.scheduleAtFixedRate(() -> this.clientRequestCounts.clear(), 1, 1, TimeUnit.MINUTES);
+
+        // set up client connection thread pool
         ExecutorService executor = new ThreadPoolExecutor(
                 0, // core pool size
                 this.maxConnections, // maximum pool size
                 60, // keep-alive time for idle threads
                 TimeUnit.SECONDS, // unit for keep-alive time
-                new LinkedBlockingQueue<Runnable>() // work queue
+                new LinkedBlockingQueue<>() // work queue
         );
 
         try (
@@ -201,6 +215,11 @@ public class Server<S> {
                     BufferedReader in = null;
                     PrintWriter out = null;
                     try {
+
+                        // rate limit socket
+                        this.rateLimitSocket(socket, false);
+
+                        // set timeout and connect to client
                         socket.setSoTimeout(this.timeout);
                         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                         out = new PrintWriter(socket.getOutputStream());
@@ -242,6 +261,10 @@ public class Server<S> {
 
         // keep the connection open until the client closes it or times out
         while (!socket.isClosed()) {
+
+            // rate limit socket
+            rateLimitSocket(socket, true);
+
             // read the request line
             Count currentRequestSize = new Count();
             String requestLine = readLine(in, currentRequestSize);
@@ -295,6 +318,25 @@ public class Server<S> {
             }
         }
     }
+
+    private void rateLimitSocket(Socket socket, boolean incrementCurrentConnection) throws IOException {
+        InetAddress clientAddress = socket.getInetAddress();
+        Integer numRequests = clientRequestCounts.get(clientAddress);
+        if (numRequests == null) numRequests = 0;
+        if (numRequests >= this.maxRequestsPerMinute) {
+            socket.close();
+            String message = String.format(
+                "client submitted %d requests in the last minute, which is the max %d configured. Client Address %s (Closing connection now)",
+                numRequests,
+                this.maxRequestsPerMinute,
+                clientAddress.toString()
+            );
+            log.severe(message);
+        }
+        else if (incrementCurrentConnection)
+            clientRequestCounts.put(clientAddress, numRequests + 1);
+    }
+
 
     private String readLine(BufferedReader in, Count currentRequestSize) throws IOException {
         StringBuilder requestLineBuilder = new StringBuilder();

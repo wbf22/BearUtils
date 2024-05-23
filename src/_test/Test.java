@@ -27,33 +27,37 @@ public class Test {
         // Test the RestClient class
         RestClient<Void> client = Beans.restClient;
 
-        try {
-            String response = client.get(
-                "http://localhost:8080/food/hot-dog?sauce=mustard&burnt=false", 
-                Map.of("meat", "beef"), 
-                String.class
-            );
-            System.out.println(response);
+        for (int i = 0; i < 1000; i++) {
+            try {
+                String response = client.get(
+                    "http://localhost:8080/food/hot-dog?sauce=mustard&burnt=false", 
+                    Map.of("meat", "beef"), 
+                    String.class
+                );
+                System.out.println(response);
+            }
+            catch (RestClientException e) {
+                System.out.println("Status Code: " + e.getStatusCode());
+                System.out.println("Body: " + e.getBody());
+                break;
+            }
         }
-        catch (RestClientException e) {
-            System.out.println("Status Code: " + e.getStatusCode());
-            System.out.println("Body: " + e.getBody());
-        }
+        
 
 
-        RestClient<Void> client2 = Beans.restClient2;
-        try {
-            List<String> response = client2.get(
-                "http://localhost:8080/food/hot-dog?sauce=mustard&burnt=false", 
-                Map.of("meat", "beef"), 
-                new ParamType<List<String>>() {}
-            );
-            System.out.println(response);
-        }
-        catch (RestClientException e) {
-            System.out.println("Status Code: " + e.getStatusCode());
-            System.out.println("Body: " + e.getBody());
-        }
+        // RestClient<Void> client2 = Beans.restClient2;
+        // try {
+        //     List<String> response = client2.get(
+        //         "http://localhost:8080/food/hot-dog?sauce=mustard&burnt=false", 
+        //         Map.of("meat", "beef"), 
+        //         new ParamType<List<String>>() {}
+        //     );
+        //     System.out.println(response);
+        // }
+        // catch (RestClientException e) {
+        //     System.out.println("Status Code: " + e.getStatusCode());
+        //     System.out.println("Body: " + e.getBody());
+        // }
 
 
         

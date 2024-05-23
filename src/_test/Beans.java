@@ -30,7 +30,7 @@ public class Beans {
 
         testServer = new TestServer();
 
-        printTask = new PrintTask();
+        // printTask = new PrintTask();
     }
 
 
