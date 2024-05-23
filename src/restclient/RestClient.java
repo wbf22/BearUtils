@@ -47,7 +47,7 @@ import java.util.function.Function;
  * Or for List or other collection types you should do this:
  * <pre>
  * {@code
- * List<MyObject> response = client.get("https://some-url.com/endpoint", Map.of("Content-Type", "application/json"), MyObject.class);
+ * List<MyObject> response = client.get("https://some-url.com/endpoint", Map.of("Content-Type", "application/json"), new ParamType<List<MyObject>>() {});
  * }
  * </pre>
  * 
@@ -179,6 +179,9 @@ public class RestClient<S> {
     
 
 
+
+    // HELPER CLASSES
+
     public static class RestClientException extends RuntimeException {
         private final int statusCode;
         private String body;
@@ -211,16 +214,14 @@ public class RestClient<S> {
     }
 
 
-    public static class ParamType<Q> {
+    public static class ParamType<Q> implements Type {
 
-        private final java.lang.reflect.Type type;
+        private final Type type;
 
         public ParamType() {
-            Type superClass = getClass().getGenericSuperclass();
-            if (superClass instanceof Class) {
-                throw new IllegalArgumentException("Missing type parameter.");
-            }
-            this.type = ((ParameterizedType) superClass).getActualTypeArguments()[0];
+            Type genericSuperclass = getClass().getGenericSuperclass();
+            ParameterizedType paramType = (ParameterizedType) genericSuperclass;
+            this.type = paramType.getActualTypeArguments()[0];
         }
 
 

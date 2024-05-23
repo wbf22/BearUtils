@@ -40,6 +40,22 @@ public class Test {
             System.out.println("Body: " + e.getBody());
         }
 
+
+        RestClient<Void> client2 = Beans.restClient2;
+        try {
+            List<String> response = client2.get(
+                "http://localhost:8080/food/hot-dog?sauce=mustard&burnt=false", 
+                Map.of("meat", "beef"), 
+                new ParamType<List<String>>() {}
+            );
+            System.out.println(response);
+        }
+        catch (RestClientException e) {
+            System.out.println("Status Code: " + e.getStatusCode());
+            System.out.println("Body: " + e.getBody());
+        }
+
+
         
 
         // String body = """

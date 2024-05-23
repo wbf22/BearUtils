@@ -31,7 +31,7 @@ public class TestServer extends Server<Void> {
         @Param boolean burnt, 
         @Header("meat") String meat
     ) {
-        return body + sauce + meat;
+        return body + sauce + " " + meat;
     }
     
 }
