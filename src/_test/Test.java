@@ -20,14 +20,12 @@ public class Test {
     
     public static void main(String[] args) throws Exception {
 
-        
-        TestServer testServer = new TestServer();
+        Beans.loadBeans();
 
 
 
         // Test the RestClient class
-        RestClient<Void> client = new RestClient<>((json, type, serializer) -> json, (json, serializer) -> json.toString(), 300000, null);
-        
+        RestClient<Void> client = Beans.restClient;
 
         try {
             String response = client.get(
@@ -42,6 +40,7 @@ public class Test {
             System.out.println("Body: " + e.getBody());
         }
 
+        
 
         // String body = """
         //     {

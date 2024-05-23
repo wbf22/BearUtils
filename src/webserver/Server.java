@@ -196,16 +196,16 @@ public class Server<S> {
          */
         // timeout requests
         // rate limiting
-
-        try (
-            ServerSocket serverSocket = new ServerSocket(port);
-            ExecutorService executor = new ThreadPoolExecutor(
-                2, // core pool size
+        ExecutorService executor = new ThreadPoolExecutor(
+                0, // core pool size
                 this.maxConnections, // maximum pool size
                 60, // keep-alive time for idle threads
                 TimeUnit.SECONDS, // unit for keep-alive time
                 new LinkedBlockingQueue<Runnable>() // work queue
-            )
+        );
+
+        try (
+            ServerSocket serverSocket = new ServerSocket(port)
         ) {
             while (true) {
                 Socket socket = serverSocket.accept();
@@ -301,6 +301,9 @@ public class Server<S> {
         }
         catch(IOException e) {
             throw new ServerException("Failed to create server socket", e);
+        }
+        finally {
+            executor.shutdown();
         }
     }
 
@@ -482,7 +485,7 @@ public class Server<S> {
 
 
     // helper classes
-    static class ServerException extends RuntimeException {
+    public static class ServerException extends RuntimeException {
         public ServerException(String message, Exception cause) {
             super(message, cause);
         }
