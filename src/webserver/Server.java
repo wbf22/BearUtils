@@ -1,20 +1,11 @@
 package webserver;
 
-import com.sun.net.httpserver.HttpServer;
-
-import _test.TestServer;
-
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.Headers;
-import com.sun.net.httpserver.HttpExchange;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.Type;
@@ -23,7 +14,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -36,14 +26,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 public class Server<S> {
     public static Map<Integer, String> statusCodes = Map.of(
@@ -85,6 +72,7 @@ public class Server<S> {
     private String contentType;
     private int maxRequestSize = 5000000; // 5 mb
     private int maxConnections = 20;
+    private boolean serverOn = true;
 
 
     protected Server (
@@ -156,13 +144,11 @@ public class Server<S> {
         this.path = (endpointAnnotation != null)? endpointAnnotation.value() : "";
 
         ExecutorService executor = Executors.newSingleThreadExecutor();
-        executor.submit(() -> {
-            setupServer(port);
-        });
+        executor.submit( () -> setUpServer(port) );
     }
 
 
-    private void setupServer(int port) {
+    private void setUpServer(int port) {
         /*
             POST /path/to/resource HTTP/1.1
             Host: www.example.com
@@ -207,7 +193,7 @@ public class Server<S> {
         try (
             ServerSocket serverSocket = new ServerSocket(port)
         ) {
-            while (true) {
+            while (serverOn) {
                 Socket socket = serverSocket.accept();
                 // handle the connection in a separate thread
                 executor.submit(() -> {
@@ -219,76 +205,20 @@ public class Server<S> {
                         in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                         out = new PrintWriter(socket.getOutputStream());
 
-                        // keep the connection open until the client closes it or times out
-                        while (!socket.isClosed()) {
-                            // read the request line
-                            Count currentRequestSize = new Count();
-                            String requestLine = readLine(in, currentRequestSize);
-                            if (requestLine == null) {
-                                // client closed the connection
-                                break;
-                            }
-                            
-                            String[] splits = requestLine.split(" ");
-
-                            // check http type
-                            if (splits[2].equals("HTTP/1.1")) {
-                                String method = splits[0];
-                                URI uri = new URI(splits[1]);
-                                
-                                // read the headers
-                                Map<String, String> headers = new HashMap<>();
-                                String line = readLine(in, currentRequestSize);
-                                while (!line.isEmpty()) {
-                                    int separator = line.indexOf(":");
-                                    if (separator != -1) {
-                                        headers.put(line.substring(0, separator), line.substring(separator + 1).trim());
-                                    }
-                                    line = readLine(in, currentRequestSize);
-                                }
-
-                                // check for host header
-                                if (headers.containsKey("Host")) {
-
-                                    // read the body
-                                    StringBuilder body = new StringBuilder();
-                                    while (in.ready()) {
-                                        body.append((char) in.read());
-                                        if (body.length() + currentRequestSize.getCount() > this.maxRequestSize)
-                                            throw new ServerException("Request exceeded maximum size of " + String.valueOf(this.maxRequestSize), null);
-                                    }
-
-                                    // get the response from the endpoint methods
-                                    String responseString = getResponseFromClass(method, uri, headers, body.toString());
-
-                                    // send success response
-                                    int status = successCodes.get(method);
-                                    buildAndSendHttpResponse(status, responseString, out);
-                                }
-                                else {
-                                    buildAndSendHttpResponse(400, "Bad Request: Missing 'Host' header", out);
-                                }
-                            }
-                            else {
-                                buildAndSendHttpResponse(505, "HTTP Version Not Supported", out);
-                            }
-                        }
+                        // handle the connection (the connection loops inside until it is closed)
+                        handleConnection(socket, in, out);
                             
     
                     } catch (SocketTimeoutException e) {
                         buildAndSendHttpResponse(408, "Request Timed Out", out);
-                    } catch (IOException e) {
-                        buildAndSendHttpResponse(500, handleErrorResponse(e).body, out);
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                         buildAndSendHttpResponse(500, handleErrorResponse(e).body, out);
                     }
                     finally {
-
-                        // sent the response
                         try {
                             if (in != null) in.close();
                             if (out != null) out.close();
+                            socket.close();
 
                         } catch (IOException e) {
                             throw new ServerException("Failed to close connection", e);
@@ -304,6 +234,65 @@ public class Server<S> {
         }
         finally {
             executor.shutdown();
+        }
+    }
+
+
+    private void handleConnection(Socket socket, BufferedReader in, PrintWriter out) throws IOException, URISyntaxException {
+
+        // keep the connection open until the client closes it or times out
+        while (!socket.isClosed()) {
+            // read the request line
+            Count currentRequestSize = new Count();
+            String requestLine = readLine(in, currentRequestSize);
+            if (requestLine == null) {
+                // client closed the connection
+                break;
+            }
+            
+            String[] splits = requestLine.split(" ");
+
+            // check http type
+            if (splits[2].equals("HTTP/1.1")) {
+                String method = splits[0];
+                URI uri = new URI(splits[1]);
+                
+                // read the headers
+                Map<String, String> headers = new HashMap<>();
+                String line = readLine(in, currentRequestSize);
+                while (!line.isEmpty()) {
+                    int separator = line.indexOf(":");
+                    if (separator != -1) {
+                        headers.put(line.substring(0, separator), line.substring(separator + 1).trim());
+                    }
+                    line = readLine(in, currentRequestSize);
+                }
+
+                // check for host header
+                if (headers.containsKey("Host")) {
+
+                    // read the body
+                    StringBuilder body = new StringBuilder();
+                    while (in.ready()) {
+                        body.append((char) in.read());
+                        if (body.length() + currentRequestSize.getCount() > this.maxRequestSize)
+                            throw new ServerException("Request exceeded maximum size of " + this.maxRequestSize, null);
+                    }
+
+                    // get the response from the endpoint methods
+                    String responseString = getResponseFromClass(method, uri, headers, body.toString());
+
+                    // send success response
+                    int status = successCodes.get(method);
+                    buildAndSendHttpResponse(status, responseString, out);
+                }
+                else {
+                    buildAndSendHttpResponse(400, "Bad Request: Missing 'Host' header", out);
+                }
+            }
+            else {
+                buildAndSendHttpResponse(505, "HTTP Version Not Supported", out);
+            }
         }
     }
 
