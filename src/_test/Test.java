@@ -1,19 +1,13 @@
 package _test;
 
 
-import java.io.IOException;
-import java.lang.reflect.Parameter;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 
+import cache.Cache;
+import id.BearId;
 import restclient.RestClient;
-import restclient.RestClient.ParamType;
 import restclient.RestClient.RestClientException;
-import restclient.RestClient.SerializeLambda;
-import restclient.RestClient.DeserializeLambda;
 
 public class Test {
 
@@ -42,7 +36,6 @@ public class Test {
                 break;
             }
         }
-        
 
 
         // RestClient<Void> client2 = Beans.restClient2;
