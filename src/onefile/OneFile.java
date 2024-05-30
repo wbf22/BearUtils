@@ -38,8 +38,7 @@ public class OneFile {
      * 
      * The following must be true for a repository to be able to do the conversion
      * - no duplicate class names
-     * - no files containing the '.java' in their name that aren't java classes/enums etc..
-     * - all of your repo is under one package
+     * - all of your repo is under one package (no external dependencies, otherwise users with have to add those dependencies to their project)
      * - your main package name doesn't match any of your dependencies names (rare)
      * - your class doesn't have a java doc followed by import statements at the top of the class (weird)
      * - (the code actually compiles)
@@ -146,7 +145,7 @@ public class OneFile {
         while (!filesToExplore.isEmpty()) {
             File file = filesToExplore.pop();
             if (file.isFile()) {
-                if (file.getName().contains(".java")) {
+                if (file.getName().endsWith(".java")) {
                     allFiles.add(file);
                     if (fileNames.contains(file.getName())) {
                         throw new OneFileException(

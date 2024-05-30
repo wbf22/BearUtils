@@ -8,6 +8,10 @@ Here's a summary of the different single class tools in the repo:
     - A server you can extend to expose a rest endpoint. Handles recieving requests and mapping to your defined methods. Protects against standard DoS attacks with timeouts, max request sizes, and rate limiting.
 - ScheduledTask
     - A class you can extend to have a scheduled task be run during your apps lifetime. Supports a fixed and initial delay. 
+- PickBoxRepo
+    - A graphql alternative allowing clients to pick and choose or query content from an endpoint. (like graphql without automatic endpoints and mutation mappings)
+- OneFile
+    - converts a repo into a single file that can be easily copied and reused. Alternative to using dependency management tools
 
 
 Feel free to use these however you like, commericially or otherwise. These are under the MIT license (free to use). If you'd like to contribute, feel free to make a PR.
