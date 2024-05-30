@@ -28,7 +28,7 @@ public class Beans {
             null
         );
 
-        testServer = new TestServer();
+        // testServer = new TestServer();
 
         // printTask = new PrintTask();
     }

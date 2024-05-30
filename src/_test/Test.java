@@ -21,6 +21,22 @@ public class Test {
         // Test the RestClient class
         RestClient<Void> client = Beans.restClient;
 
+        // String response = client.get(
+        //     "http://192.168.1.100:8080/food/hot-dog?sauce=mustard&burnt=false", 
+        //     Map.of("meat", "beef"), 
+        //     String.class
+        // );
+        // System.out.println(response);
+
+
+        // 10.241.47.205
+        String response2 = client.get(
+            "http://147.185.221.19:57594/food/hot-dog?sauce=cheese&burnt=false", 
+            Map.of("meat", "beef"), 
+            String.class
+        );
+        System.out.println(response2);
+
         for (int i = 0; i < 1000; i++) {
             try {
                 String response = client.get(

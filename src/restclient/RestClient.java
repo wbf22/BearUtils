@@ -11,8 +11,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Function;
 
 
 /**
@@ -182,6 +180,10 @@ public class RestClient<S> {
 
     // HELPER CLASSES
 
+    /**
+     * Exception thrown by the rest client. Contains the status code and the body string
+     * with the error response.
+     */
     public static class RestClientException extends RuntimeException {
         private final int statusCode;
         private String body;
