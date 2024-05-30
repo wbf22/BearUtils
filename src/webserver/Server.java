@@ -230,8 +230,10 @@ public class Server<S> {
     
                     } catch (SocketTimeoutException e) {
                         buildAndSendHttpResponse(408, "Request Timed Out", out);
+                        log.warning(String.format("Request timed out %s", e.toString()));
                     } catch (Exception e) {
                         buildAndSendHttpResponse(500, handleErrorResponse(e).body, out);
+                        log.warning(String.format("Exception occured during request %s", e.toString()));
                     }
                     finally {
                         try {
@@ -262,16 +264,20 @@ public class Server<S> {
         // keep the connection open until the client closes it or times out
         while (!socket.isClosed()) {
 
-            // rate limit socket
-            rateLimitSocket(socket, true);
 
             // read the request line
             Count currentRequestSize = new Count();
             String requestLine = readLine(in, currentRequestSize);
-            if (requestLine == null) {
+            if (requestLine == null || requestLine.isEmpty()) {
                 // client closed the connection
                 break;
             }
+            // else if () {
+            //     continue;
+            // }
+
+            // rate limit socket
+            rateLimitSocket(socket, true);
             
             String[] splits = requestLine.split(" ");
 
@@ -326,7 +332,7 @@ public class Server<S> {
         if (numRequests >= this.maxRequestsPerMinute) {
             socket.close();
             String message = String.format(
-                "client submitted %d requests in the last minute, which is the max %d configured. Client Address %s (Closing connection now)",
+                "client submitted %d requests in the last minute, which is the max %d configured (Potential DOS attack). Client Address %s (Closing connection now)",
                 numRequests,
                 this.maxRequestsPerMinute,
                 clientAddress.toString()
@@ -370,7 +376,9 @@ public class Server<S> {
 
         out.println("Date: " + ZonedDateTime.now().format(DateTimeFormatter.RFC_1123_DATE_TIME));
         out.println("Content-Type: " + this.contentType);
-        out.println("Content-Length: " + responseString.length());
+
+        String contentLength = (responseString == null)? "2" : String.valueOf(responseString.getBytes().length + 2);
+        out.println("Content-Length: " + contentLength);
         out.println("Connection: keep-alive");
         out.println();
         out.println(responseString);
@@ -383,7 +391,7 @@ public class Server<S> {
         String cause = e.getCause() == null? "" : e.getCause().getMessage();
 
         if (message != null) body.append(message);
-        if (cause != null) body.append(cause);
+        if (cause != null) body.append(" ").append(cause);
 
         body.append(" \" }");
         return new ErrorResponse(
@@ -413,12 +421,12 @@ public class Server<S> {
         };
         if (method != null) {
             // parse params
-            List<String> params = new ArrayList<>();
+            Map<String, String> params = new HashMap<>();
             String reqString = uri.getQuery();
-            if (reqString.length() > 1) {
+            if (reqString != null && reqString.length() > 1) {
                 for (String param : reqString.split("&")) {
                     String[] pair = param.split("=");
-                    params.add(pair[1]);
+                    params.put(pair[0], pair[1]);
                 }
             }
 
@@ -442,7 +450,9 @@ public class Server<S> {
 
                 Param paramAnnotation = param.getAnnotation(Param.class);
                 if (paramAnnotation != null) {
-                    Object res = params.get(currentParam);
+                    if (paramAnnotation.value().isEmpty())
+                        throw new ServerException("Param annotation is missing a value used to match to query params", null);
+                    Object res = params.get(paramAnnotation.value());
                     currentParam++;
                     Class<?> type = param.getType();
                     res = parseBasicType(res, type);
@@ -468,7 +478,11 @@ public class Server<S> {
             } 
             catch (ReflectiveOperationException e) {
                 throw new ServerException("Matching endpoint method wasn't public or had some other failure", e);
-            } catch (Exception e) {
+            } 
+            catch (IllegalArgumentException e) {
+                throw new ServerException("Couldn't convert provided arguments to method types", e);
+            }
+            catch (Exception e) {
                 throw new ServerException("Error deserializing result from endpoint", e);
             }
         }
@@ -479,7 +493,7 @@ public class Server<S> {
     private Object parseBasicType(Object res, Class<?> type) {
         if (res == null) return res;
         
-        if ( boolean.class.isAssignableFrom(type) ) {
+        if ( type == Boolean.class || type == boolean.class) {
             res = Boolean.parseBoolean(res.toString());
         }
         else if ( Number.class.isAssignableFrom(type) ) {
@@ -602,7 +616,9 @@ public class Server<S> {
     @Documented
     @Retention(RetentionPolicy.RUNTIME)
     @Target({ElementType.TYPE, ElementType.PARAMETER})
-    public static @interface Param {}
+    public static @interface Param {
+        String value() default "";
+    }
 
     @Documented
     @Retention(RetentionPolicy.RUNTIME)
