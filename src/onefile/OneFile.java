@@ -37,11 +37,11 @@ public class OneFile {
      * Converts a repository to one large file for ease of copying into a project.
      * 
      * The following must be true for a repository to be able to do the conversion
-     * - no duplicate class names
-     * - all of your repo is under one package (no external dependencies, otherwise users with have to add those dependencies to their project)
-     * - your main package name doesn't match any of your dependencies names (rare)
-     * - your class doesn't have a java doc followed by import statements at the top of the class (weird)
-     * - (the code actually compiles)
+     * <p>- no duplicate class names
+     * <p>- all of your repo is under one package (no external dependencies, otherwise users with have to add those dependencies to their project)
+     * <p>- your main package name doesn't match any of your dependencies names (rare)
+     * <p>- your class doesn't have a java doc followed by import statements at the top of the class (weird)
+     * <p>- (the code actually compiles)
      * 
      * @param repositoryName name of your repository, and resulting name of one file output
      * @param rootDirectory root directory that contains all classes you want to include in the one file
@@ -139,8 +139,12 @@ public class OneFile {
         File root = new File(rootDir);
 
         Deque<File> filesToExplore = new ArrayDeque<>();
+        File[] files = root.listFiles();
+        if (files == null) {
+            throw new OneFileException("Root directory is empty", null);
+        }
         filesToExplore.addAll(
-            Arrays.stream(root.listFiles()).toList()
+            Arrays.stream(files).toList()
         );
         while (!filesToExplore.isEmpty()) {
             File file = filesToExplore.pop();
