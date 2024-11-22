@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 
-
 public class Serializer {
 
     private Serializer() {}
@@ -56,7 +55,7 @@ public class Serializer {
 
     public static <T> T fromJson(String json, Type type) {
         // remove whitespace
-        json = json.replaceAll("[ \n\t]", "");
+        json = removeWhitespaceFromJson(json);
         Class<T> clazz = (Class<T>) typeToClassWildcard(type);
 
         // if map or object
@@ -481,7 +480,7 @@ public class Serializer {
 
         return builder.toString();
     }
-	
+    
     private static Map<String, Object> jsonStringToMap(String json) {
 
         // "{"ham":{"cheese":1,"list":[1,2,3]}}"
@@ -522,6 +521,10 @@ public class Serializer {
                         if (json.charAt(j) == ']') openBrackets--;
                     }
                 }
+                else if (json.charAt(j) == '\"') {
+                    j++;
+                    while (json.charAt(j) != '\"') j++;
+                }
                 else {
                     while (json.charAt(j) != ',' && json.charAt(j) != '}') j++;
                     j--;
@@ -540,6 +543,8 @@ public class Serializer {
     }
 
     public static Object getObjectFromString(String valueString) {
+        if (valueString.equals("null")) return null;
+
         Object value;
         if (valueString.charAt(0) == '{') {
             value = jsonStringToMap(valueString);
@@ -669,6 +674,8 @@ public class Serializer {
      * @param <T> type
      */
     private static <T> T safeCast(Object obj, Class<T> desiredType) {
+        if (obj == null) return null;
+
         if (desiredType.isInstance(obj)) {
             return desiredType.cast(obj);
         }
@@ -734,6 +741,26 @@ public class Serializer {
 
     }
 
+    /**
+     * Removes \n\t and whitespace anywhere in the json other than in strings
+     */
+    public static String removeWhitespaceFromJson(String json) {
+        StringBuilder builder = new StringBuilder();
+        boolean inString = false;
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (c == '\"') inString = !inString;
+            if (c == ' ' || c == '\n' || c == '\t') {
+                if (inString) {
+                    builder.append(c);
+                }
+            }
+            else {
+                builder.append(c);
+            }
+        }
+        return builder.toString();
+    }
 
     /**
      * Annotation that can be used to ignore fields when serializing to json.
