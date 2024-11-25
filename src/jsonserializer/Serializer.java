@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 
+
 public class Serializer {
 
     private Serializer() {}
@@ -466,7 +467,10 @@ public class Serializer {
             else {
                 builder.append("    \"").append(entry.getKey()).append("\": ");
                 if (entry.getValue() instanceof String || entry.getValue().getClass().isEnum()) {
-                    builder.append("\"").append(entry.getValue()).append("\"").append(",\n");
+                    String value = escapeQuotes(
+                        entry.getValue().toString()
+                    );
+                    builder.append("\"").append(value).append("\"").append(",\n");
                 }
                 else {
                     builder.append(entry.getValue()).append(",\n");
@@ -523,7 +527,12 @@ public class Serializer {
                 }
                 else if (json.charAt(j) == '\"') {
                     j++;
-                    while (json.charAt(j) != '\"') j++;
+                    while (json.charAt(j) != '\"')  {
+                        j++;
+                        if ( json.charAt(j-1) == '\\' && json.charAt(j) == '\"') {
+                            j++;
+                        }
+                    }
                 }
                 else {
                     while (json.charAt(j) != ',' && json.charAt(j) != '}') j++;
@@ -742,18 +751,49 @@ public class Serializer {
     }
 
     /**
-     * Removes \n\t and whitespace anywhere in the json other than in strings
+     * Removes \n\t and whitespace anywhere in the json other than in strings.
+     * Cleans up spare quotes in strings.
      */
     public static String removeWhitespaceFromJson(String json) {
         StringBuilder builder = new StringBuilder();
+        List<Character> chars = List.of(',', '\n', ':');
         boolean inString = false;
         for (int i = 0; i < json.length(); i++) {
             char c = json.charAt(i);
-            if (c == '\"') inString = !inString;
+            if (c == '\"') {
+                if (inString) {
+                    if (i < json.length() - 1 && chars.contains(json.charAt(i+1))) {
+                        inString = false;
+                    }
+                    else {
+                        builder.append("\\\"");
+                        i++;
+                        continue;
+                    }
+                }
+                else inString = true;
+            }
             if (c == ' ' || c == '\n' || c == '\t') {
                 if (inString) {
                     builder.append(c);
                 }
+            }
+            else {
+                builder.append(c);
+            }
+        }
+        return builder.toString();
+    }
+
+    /**
+     * Escape quotes in strings
+     */
+    public static String escapeQuotes(String json) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (c == '\"' && !(i > 0 && json.charAt(i-1) == '\\')) {
+                builder.append("\\\"");
             }
             else {
                 builder.append(c);
@@ -797,3 +837,4 @@ public class Serializer {
 
     }
 }
+
