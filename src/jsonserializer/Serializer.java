@@ -26,6 +26,9 @@ import java.util.Map.Entry;
 
 
 
+
+
+
 public class Serializer {
 
     private Serializer() {}
@@ -285,6 +288,14 @@ public class Serializer {
      */
     public static <T> Map<String, Object> mapify(T object) {
 
+        if (object == null) return null;
+        if (object instanceof Map objMap) {
+            Object key = objMap.keySet().stream().findAny().orElse(null);
+            if (key instanceof String) {
+                return safeCastMap(objMap, String.class, Object.class);
+            }
+        } 
+
         Map<String, Object> mappedResponse = new LinkedHashMap<>(); // linked to maintain order
         
         Class<?> objectType = object.getClass();
@@ -383,7 +394,11 @@ public class Serializer {
                         throw new SerializerException("Double nested lists aren't supported for jsonMap conversion. Map key: " + entry.getKey(), null);
                     }
                     else if (o instanceof String || o.getClass().isEnum()) {
-                        stringBuilder.append("\"").append(o).append("\"");
+                        appendStringOrEnum(
+                            stringBuilder,
+                            o,
+                            false
+                        );
                     }
                     else {
                         stringBuilder.append(entry.getValue());
@@ -395,7 +410,11 @@ public class Serializer {
             }
             else {
                 if (entry.getValue() instanceof String || entry.getValue().getClass().isEnum()) {
-                    stringBuilder.append("\"").append(entry.getValue()).append("\"");
+                    appendStringOrEnum(
+                        stringBuilder,
+                        entry.getValue(),
+                        false
+                    );
                 }
                 else {
                     stringBuilder.append(entry.getValue());
@@ -420,7 +439,10 @@ public class Serializer {
 
         for (Entry<String, Object> entry : map.entrySet()) {
 
-            if (entry.getValue() instanceof Map) {
+            if (entry.getValue() == null) {
+                builder.append("    \"").append(entry.getKey()).append("\": null,\n");
+            }
+            else if (entry.getValue() instanceof Map) {
                 builder.append("    \"").append(entry.getKey()).append("\": ");
                 String mapString = mapToPrettyJsonString((Map<String, Object>) entry.getValue());
                 String[] lines = mapString.split("\n");
@@ -455,7 +477,11 @@ public class Serializer {
                         throw new SerializerException("Double nested lists aren't supported for jsonMap conversion. Map key: " + entry.getKey(), null);
                     }
                     else if (o instanceof String || o.getClass().isEnum()) {
-                        builder.append("\"").append(o).append("\"").append(",\n");
+                        appendStringOrEnum(
+                            builder,
+                            o,
+                            true
+                        );
                     }
                     else {
                         builder.append(entry.getValue()).append(",\n");
@@ -467,10 +493,11 @@ public class Serializer {
             else {
                 builder.append("    \"").append(entry.getKey()).append("\": ");
                 if (entry.getValue() instanceof String || entry.getValue().getClass().isEnum()) {
-                    String value = escapeQuotes(
-                        entry.getValue().toString()
+                    appendStringOrEnum(
+                        builder,
+                        entry.getValue(),
+                        true
                     );
-                    builder.append("\"").append(value).append("\"").append(",\n");
                 }
                 else {
                     builder.append(entry.getValue()).append(",\n");
@@ -483,6 +510,14 @@ public class Serializer {
         builder.append("}");
 
         return builder.toString();
+    }
+
+    private static void appendStringOrEnum(StringBuilder builder, Object value, boolean newLine) {
+        String valueString = escapeCharacters(
+            value.toString()
+        );
+        builder.append("\"").append(valueString).append("\"");
+        if (newLine) builder.append(",\n");
     }
     
     private static Map<String, Object> jsonStringToMap(String json) {
@@ -756,18 +791,16 @@ public class Serializer {
      */
     public static String removeWhitespaceFromJson(String json) {
         StringBuilder builder = new StringBuilder();
-        List<Character> chars = List.of(',', '\n', ':');
         boolean inString = false;
         for (int i = 0; i < json.length(); i++) {
             char c = json.charAt(i);
             if (c == '\"') {
                 if (inString) {
-                    if (i < json.length() - 1 && chars.contains(json.charAt(i+1))) {
+                    if (!isEscapedQuoteOrShouldBe(json, i)) {
                         inString = false;
                     }
                     else {
                         builder.append("\\\"");
-                        i++;
                         continue;
                     }
                 }
@@ -785,10 +818,38 @@ public class Serializer {
         return builder.toString();
     }
 
+    private static List<Character> whiteSpace = List.of(' ', '\n', '\t');
+    private static List<Character> quoteIndicators = List.of(',', '}', ']', ':');
+    public static boolean isEscapedQuoteOrShouldBe(String json, int index) {
+        if (json.charAt(index) == '\"') {
+            if (index > 0 && json.charAt(index-1) == '\\') {
+                return true;
+            }
+            else {
+                index++;
+                char c = json.charAt(index);
+                while (whiteSpace.contains(c)) {
+                    index++;
+                    c = json.charAt(index);
+                }
+                return !quoteIndicators.contains(c);
+            }
+        }
+        return false;
+    }
+
     /**
      * Escape quotes in strings
      */
-    public static String escapeQuotes(String json) {
+    public static String escapeCharacters(String json) {
+
+        // escape quotes
+        json = json
+            .replace("\n", "\\n")
+            .replace("\t", "\\t")
+            .replace("\\\"", "\"");
+
+        // make sure quotes are escaped
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < json.length(); i++) {
             char c = json.charAt(i);
@@ -799,6 +860,7 @@ public class Serializer {
                 builder.append(c);
             }
         }
+
         return builder.toString();
     }
 
@@ -837,4 +899,6 @@ public class Serializer {
 
     }
 }
+
+
 
