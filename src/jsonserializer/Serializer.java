@@ -80,15 +80,16 @@ public class Serializer {
             List<Map<String, Object>> value = (List<Map<String, Object>>) getObjectFromString(json);
 
             // convert maps into objects
-            Class<?> listType = (Class<?>) ((ParameterizedType) type).getActualTypeArguments()[0];
+            Type listType = ((ParameterizedType) type).getActualTypeArguments()[0];
+            Class<?> listTypeClass = typeToClassWildcard(listType);
             List<Object> newList = new ArrayList<>();
             for (Map<String, Object> elem : value) {
-                if (Map.class.isAssignableFrom(listType)) {
+                if (Map.class.isAssignableFrom(listTypeClass)) {
                     newList.add(elem);
                 }
                 else {
                     Object converted = convertMapToObj(
-                        getDefault(listType),
+                        getDefault(listTypeClass),
                         elem
                     );
                     newList.add(converted);
@@ -477,6 +478,7 @@ public class Serializer {
                         throw new SerializerException("Double nested lists aren't supported for jsonMap conversion. Map key: " + entry.getKey(), null);
                     }
                     else if (o instanceof String || o.getClass().isEnum()) {
+                        builder.append("    ").append("    ");
                         appendStringOrEnum(
                             builder,
                             o,
@@ -506,7 +508,8 @@ public class Serializer {
 
         }
 
-        builder.deleteCharAt(builder.length() - 2);
+        if (!map.isEmpty()) builder.deleteCharAt(builder.length() - 2);
+        else builder.deleteCharAt(builder.length() - 1);
         builder.append("}");
 
         return builder.toString();
@@ -532,7 +535,7 @@ public class Serializer {
 
             // get key
             String key = "";
-            if (json.charAt(i) == '\"') {
+            if (isNonEscapedQuote(json, i)) {
                 int j = i+1;
                 while(json.charAt(j) != '\"') j++;
                 
@@ -560,13 +563,10 @@ public class Serializer {
                         if (json.charAt(j) == ']') openBrackets--;
                     }
                 }
-                else if (json.charAt(j) == '\"') {
+                else if (isNonEscapedQuote(json, j)) {
                     j++;
-                    while (json.charAt(j) != '\"')  {
+                    while (!isNonEscapedQuote(json, j))  {
                         j++;
-                        if ( json.charAt(j-1) == '\\' && json.charAt(j) == '\"') {
-                            j++;
-                        }
                     }
                 }
                 else {
@@ -621,8 +621,11 @@ public class Serializer {
 
             value = list;
         }
-        else if (valueString.charAt(0) == '\"') {
+        else if (isNonEscapedQuote(valueString, 0)) {
             value = valueString.substring(1, valueString.length()-1);
+        }
+        else if ("true".equals(valueString) || "false".equals(valueString)) {
+            value = Boolean.parseBoolean(valueString);
         }
         else {
             value = new BigDecimal(valueString);
@@ -740,7 +743,7 @@ public class Serializer {
      */
     public static <T, S> Map<T,S> safeCastMap(Object obj, Class<T> keyType, Class<S> valueType) {
         try {
-            Map<T, S> newMap = new HashMap<>();
+            Map<T, S> newMap = new LinkedHashMap<>();
             for(Object entry : safeCast(obj, Map.class).entrySet()) {
                 if (entry instanceof Map.Entry<?, ?> newEntry) {
                     newMap.put(
@@ -816,6 +819,10 @@ public class Serializer {
             }
         }
         return builder.toString();
+    }
+
+    public static boolean isNonEscapedQuote(String json, int index) {
+        return json.charAt(index) == '\"' && (index == 0 || json.charAt(index-1) != '\\');
     }
 
     private static List<Character> whiteSpace = List.of(' ', '\n', '\t');
@@ -899,6 +906,7 @@ public class Serializer {
 
     }
 }
+
 
 
 
