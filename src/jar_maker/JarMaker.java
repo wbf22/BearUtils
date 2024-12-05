@@ -38,10 +38,10 @@ public class JarMaker {
                     .toList();
                 StringBuilder compileCommand = new StringBuilder("javac -d bin ");
                 for (String javaFile : javaFiles)  compileCommand.append(javaFile).append(" ");
-                runProcess(compileCommand.toString()); // javac -d bin src/test/App.java
+                runProcess(compileCommand.toString()); // javac -d bin src/jar_maker/JarMaker.java
                 
                 // Create manifest file
-                runProcess("echo Main-Class: " + main + " > MANIFEST.MF"); // echo Main-Class: test.App > MANIFEST.MF
+                runProcess("echo Main-Class: " + main + " > MANIFEST.MF"); // echo Main-Class: jar_maker.JarMaker > MANIFEST.MF
     
                 // Create JAR file
                 List<String> classFiles = sources.stream()
@@ -49,7 +49,7 @@ public class JarMaker {
                     .toList();
                 StringBuilder jarCommand = new StringBuilder("jar cfm " + name + " MANIFEST.MF -C bin .");
                 for (String classFile : classFiles)  jarCommand.append(classFile).append(" ");
-                runProcess(jarCommand.toString()); // jar cfm MyJar.jar MANIFEST.MF -C bin .
+                runProcess(jarCommand.toString()); // jar cfm JarMaker.jar MANIFEST.MF -C bin .
     
                 // delete the manifest file
                 Files.deleteIfExists(Paths.get("MANIFEST.MF"));
@@ -57,7 +57,7 @@ public class JarMaker {
                 // delete bin
                 deleteDirectory(new File("bin"));
 
-                // runProcess("java -jar " + name); // java -jar MyJar.jar
+                // runProcess("java -jar " + name); // java -jar JarMaker.jar
     
                 System.out.println("Java project compiled and JAR file created successfully.");
                 
@@ -78,7 +78,7 @@ public class JarMaker {
         System.out.println();
         System.out.println("******** JarMaker ********");
         System.out.println();
-        System.out.println("Usage: java JarMaker <main> <name> <src...>");
+        System.out.println("Usage: java -jar JarMaker <main> <name> <src...>");
         System.out.println("main: The name of main class of the Java project. If you main class is 'Main.java' in package 'com.example' then the main class is 'com.example.Main'");
         System.out.println("name: The name of the JAR file to be created. Eg 'MyJar.jar'");
         System.out.println("src: The source directory(s) of the Java project relative to the current directory. Eg 'src'");
