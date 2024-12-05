@@ -1,0 +1,40 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Current File",
+            "request": "launch",
+            "mainClass": "${file}"
+        },
+        {
+            "type": "java",
+            "name": "PickBoxTest",
+            "request": "launch",
+            "mainClass": "_test.PickBoxTest",
+            "projectName": "BearUtils_3b07e300"
+        },
+        {
+            "type": "java",
+            "name": "Test",
+            "request": "launch",
+            "mainClass": "_test.Test",
+            "projectName": "BearUtils_3b07e300"
+        },
+        {
+            "type": "java",
+            "name": "JarMaker",
+            "request": "launch",
+            "mainClass": "jar_maker.JarMaker",
+            "projectName": "BearUtils_3b07e300",
+            "args": [
+                "JarMaker",
+                "JarMaker.jar",
+                "src/jar_maker"
+            ]
+        }
+    ]
+}
