@@ -31,8 +31,6 @@
             "mainClass": "jar_maker.JarMaker",
             "projectName": "BearUtils_3b07e300",
             "args": [
-                "jar_maker.JarMaker",
-                "JarMaker.jar",
                 "src/jar_maker"
             ]
         }

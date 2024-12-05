@@ -7,7 +7,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 
 
@@ -18,37 +22,88 @@ public class JarMaker {
     public static void main(String[] args) {
 
         try {
-            String main = args[0];
-            if (main.contains("help")) {
+            if (args[0].contains("help") || args[0].contains("-h")) {
                 printHelp();
                 return;
             }
-    
-            String name = args[1];
+
+            String main = null;
+            String name = null;
             List<String> sources = new ArrayList<>();
-            for (int i = 2; i < args.length; i++) {
-                sources.add(args[i]);
+            for (int i = 0; i < args.length; i++) {
+                String arg = args[i];
+                if (arg.equals("-m")) {
+                    main = args[i + 1];
+                    i++;
+                }
+                else if (arg.equals("-n")) {
+                    name = args[i + 1];
+                    i++;
+                }
+                else {
+                    sources.add(arg);
+                }
+
             }
+    
 
             try {
 
                 // Compile Java files
-                List<String> javaFiles = sources.stream()
-                    .flatMap(sourceDir -> getFilesInDirectoryRecursively(sourceDir, ".java").stream())
+                List<String> files = sources.stream()
+                    .flatMap(sourceDir -> getFilesInDirectoryRecursively(sourceDir, null).stream())
                     .toList();
+                List<String> javaFiles = files.stream()
+                    .filter(file -> file.endsWith(".java"))
+                    .collect(Collectors.toList());
+
+                // determine main class and jar name (if not provided)
+                if (main == null) {
+                    Collections.sort(javaFiles, (a, b) -> Integer.compare(a.split("/").length, b.split("/").length));
+                    Path mainFile = Path.of(
+                        javaFiles.stream().findFirst().get()
+                    );
+                    main = mainFile.toString().replace(".java", "");
+                    if (main.contains("/")) {
+                        main = main.replace("/", ".");
+                        main = main.substring(main.indexOf(".") + 1);
+                    }
+                }
+                if (name == null) {
+                    name = main.contains(".") ? main.substring(main.lastIndexOf(".") + 1) : main;
+                    name += ".jar";
+                }
+                
                 StringBuilder compileCommand = new StringBuilder("javac -d bin ");
                 for (String javaFile : javaFiles)  compileCommand.append(javaFile).append(" ");
                 runProcess(compileCommand.toString()); // javac -d bin src/jar_maker/JarMaker.java
+
+                // copy resources to bin
+                files.stream()
+                    .filter(file -> !file.endsWith(".java"))
+                    .forEach(file -> {
+                        try {
+                            Path fullPath = Paths.get(file);
+                            Path parentPath = fullPath;
+                            while (parentPath.getParent() != null) {
+                                parentPath = parentPath.getParent();
+                            }
+                            Path relativePath = parentPath.relativize(fullPath);
+                            Path newPath = Paths.get("bin", relativePath.getParent().toString());
+                            Files.createDirectories(newPath);
+                            Path newFile = Paths.get("bin", relativePath.toString());
+                            Files.deleteIfExists(newFile);
+                            Files.copy(Paths.get(file), newFile);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    });
                 
                 // Create manifest file
                 runProcess("echo Main-Class: " + main + " > MANIFEST.MF"); // echo Main-Class: jar_maker.JarMaker > MANIFEST.MF
     
                 // Create JAR file
-                List<String> classFiles = sources.stream()
-                    .flatMap(sourceDir -> getFilesInDirectoryRecursively(sourceDir, ".class").stream())
-                    .toList();
                 StringBuilder jarCommand = new StringBuilder("jar cfm " + name + " MANIFEST.MF -C bin .");
-                for (String classFile : classFiles)  jarCommand.append(classFile).append(" ");
                 runProcess(jarCommand.toString()); // jar cfm JarMaker.jar MANIFEST.MF -C bin .
     
                 // delete the manifest file
@@ -75,13 +130,23 @@ public class JarMaker {
     }
 
     private static void printHelp() {
-        System.out.println();
-        System.out.println("******** JarMaker ********");
-        System.out.println();
-        System.out.println("Usage: java -jar JarMaker <main> <name> <src...>");
-        System.out.println("main: The name of main class of the Java project. If you main class is 'Main.java' in package 'com.example' then the main class is 'com.example.Main'");
-        System.out.println("name: The name of the JAR file to be created. Eg 'MyJar.jar'");
-        System.out.println("src: The source directory(s) of the Java project relative to the current directory. Eg 'src'");
+        System.out.println(
+        """
+        ******** JarMaker ********
+
+        Usage: java -jar JarMaker <src...>
+
+        Arguments:
+            <src...>    The source directory(s) of the Java project relative to the current directory. Eg 'src'
+
+        Options:
+            -m <main>   The name of main class of the Java project. If you main class is 'Main.java' in package 'com.example' then the main class is 'com.example.Main'
+            -n <name>   The name of the JAR file to be created. Eg 'MyJar.jar'
+
+        By default, the main class is the first class in the first source directory, the name of the jar will assume the same name as that class.
+
+        """
+        );
     }
 
     private static void runProcess(String command) throws IOException, InterruptedException {
@@ -106,7 +171,7 @@ public class JarMaker {
                     if (Files.isDirectory(path)) {
                         return getFilesInDirectoryRecursively(path.toString(), extension).stream();
                     }
-                    else if (path.toString().endsWith(extension)) {
+                    else if (extension == null || path.toString().endsWith(extension)) {
                         return List.of(path).stream();
                     }
                     else {
