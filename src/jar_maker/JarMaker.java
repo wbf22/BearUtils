@@ -55,13 +55,14 @@ public class JarMaker {
                     .toList();
                 List<String> javaFiles = files.stream()
                     .filter(file -> file.endsWith(".java"))
-                    .collect(Collectors.toList());
+                    .toList();
 
                 // determine main class and jar name (if not provided)
                 if (main == null) {
-                    Collections.sort(javaFiles, (a, b) -> Integer.compare(a.split("/").length, b.split("/").length));
+                    List<String> firstSourceJavaFiles = getFilesInDirectoryRecursively(sources.get(0), ".java");
+                    Collections.sort(firstSourceJavaFiles, (a, b) -> Integer.compare(a.split("/").length, b.split("/").length));
                     Path mainFile = Path.of(
-                        javaFiles.stream().findFirst().get()
+                        firstSourceJavaFiles.stream().findFirst().get()
                     );
                     main = mainFile.toString().replace(".java", "");
                     if (main.contains("/")) {
@@ -144,7 +145,6 @@ public class JarMaker {
             -n <name>   The name of the JAR file to be created. Eg 'MyJar.jar'
 
         By default, the main class is the first class in the first source directory, the name of the jar will assume the same name as that class.
-
         """
         );
     }
@@ -179,7 +179,7 @@ public class JarMaker {
                     }
                 })
                 .map(path -> path.toString())
-                .toList();
+                .collect(Collectors.toList());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

@@ -9,7 +9,39 @@ Run the command like so to package a project into a jar file:
 java -jar JarMaker.jar <main> <name> <src> <src> ...
 ```
 
-Where:
-- `<main>` The name of main class of the Java project. If you main class is 'Main.java' in package 'com.example' then the main class is 'com.example.Main'
-- `<name>` The name of the jar file to created.
+Arguments:
 - `<src>` The source directory(s) of the Java project relative to the current directory. Eg 'src' (you can include dependencies in the jar by adding more source directories)
+
+Options:
+- `-m <main>` The name of main class of the Java project. If you main class is 'Main.java' in package 'com.example' then the main class is 'com.example.Main'
+- `-n <name>` The name of the jar file to created.
+
+By default, the main class is the first class in the first source directory, the name of the jar will assume the same name as that class.
+
+Any other files in the source directories will be copied to the JAR file and can be accessed using the getResourceAsStream() method with a ClassLoader object.
+
+```java
+    public void printResource(String location) throws IOException {
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        InputStream inputStream = classLoader.getResourceAsStream(location);
+
+        if (inputStream != null) {
+            BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+            reader.close();
+            System.out.println("File read successfully!");
+        }
+        else {
+            System.out.println("File not found! Available Files:");
+            Enumeration<URL> resources = classLoader.getResources("");
+            while (resources.hasMoreElements()) {
+                URL resourceUrl = resources.nextElement();
+                System.out.println(resourceUrl.getFile());
+            }
+        }
+    }
+```
