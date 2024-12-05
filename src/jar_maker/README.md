@@ -45,3 +45,17 @@ Any other files in the source directories will be copied to the JAR file and can
         }
     }
 ```
+
+
+## Building
+
+If you trust me you can use the jar file here. 
+
+To be safe, it's better to build the jar file yourself (with Java 17 installed). You can do that like so:
+```bash
+javac -d bin src/jar_maker/JarMaker.java
+echo Main-Class: jar_maker.JarMaker > MANIFEST.MF
+jar cfm JarMaker.jar MANIFEST.MF -C bin .
+rm MANIFEST.MF
+rm -r bin
+```
