@@ -536,8 +536,7 @@ public class Serializer {
             // get key
             String key = "";
             if (isNonEscapedQuote(json, i)) {
-                int j = i+1;
-                while(json.charAt(j) != '\"') j++;
+                int j = jumpToEndOfQuote(json, i+1);
                 
                 key = json.substring(i+1, j);
                 i = j+1;
@@ -551,6 +550,9 @@ public class Serializer {
                     int openBrackets = 1;
                     while (openBrackets > 0) {
                         j++;
+                        if (isNonEscapedQuote(json, j)) {
+                            j = jumpToEndOfQuote(json, j);
+                        }
                         if (json.charAt(j) == '{') openBrackets++;
                         if (json.charAt(j) == '}') openBrackets--;
                     }
@@ -559,6 +561,9 @@ public class Serializer {
                     int openBrackets = 1;
                     while (openBrackets > 0) {
                         j++;
+                        if (isNonEscapedQuote(json, j)) {
+                            j = jumpToEndOfQuote(json, j);
+                        }
                         if (json.charAt(j) == '[') openBrackets++;
                         if (json.charAt(j) == ']') openBrackets--;
                     }
@@ -594,7 +599,7 @@ public class Serializer {
             value = jsonStringToMap(valueString);
         }
         else if (valueString.charAt(0) == '[') {
-            // remove brackets
+            // remove outer brackets
             valueString = valueString.substring(1, valueString.length()-1);
 
             // split by commas
@@ -603,6 +608,7 @@ public class Serializer {
             int j = 0;
             for (int i = 0; i < valueString.length(); i++) {
 
+                if (isNonEscapedQuote(valueString, i)) i = jumpToEndOfQuote(valueString, i);
                 if (valueString.charAt(i) == '[' || valueString.charAt(i) == '{') openBrackets++;
                 if (valueString.charAt(i) == ']' || valueString.charAt(i) == '}') openBrackets--;
 
@@ -844,6 +850,15 @@ public class Serializer {
         }
         return false;
     }
+
+    public static int jumpToEndOfQuote(String json, int index) {
+        index++;
+        while (!isNonEscapedQuote(json, index)) {
+            index++;
+        }
+        return index;
+    }
+
 
     /**
      * Escape quotes in strings
