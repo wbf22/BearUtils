@@ -6,7 +6,7 @@ A simple tool for packaging a project into a jar file.
 Run the command like so to package a project into a jar file:
 
 ```bash
-java -jar JarMaker.jar <main> <name> <src> <src> ...
+java -jar JarMaker.jar -m <main> -n <name> <src> <src> ...
 ```
 
 Arguments:

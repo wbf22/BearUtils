@@ -9,7 +9,7 @@
             "name": "Test",
             "request": "launch",
             "mainClass": "jsonserializer.test.Test",
-            "projectName": "BearUtils_3b07e300"
+            "projectName": "BearUtils_f015b59c"
         },
         {
             "type": "java",
@@ -22,23 +22,31 @@
             "name": "PickBoxTest",
             "request": "launch",
             "mainClass": "_test.PickBoxTest",
-            "projectName": "BearUtils_3b07e300"
+            "projectName": "BearUtils_f015b59c"
         },
         {
             "type": "java",
             "name": "Test",
             "request": "launch",
             "mainClass": "_test.Test",
-            "projectName": "BearUtils_3b07e300"
+            "projectName": "BearUtils_f015b59c"
         },
         {
             "type": "java",
             "name": "JarMaker",
             "request": "launch",
             "mainClass": "jar_maker.JarMaker",
-            "projectName": "BearUtils_3b07e300",
+            "projectName": "BearUtils_f015b59c",
+            // "cwd": "/home/brandon/Documents/DbDo",
+            "cwd": "/home/brandon/Documents/BearUtils/src/jar_maker",
             "args": [
-                "src/jar_maker"
+                "-m",
+                "jar_maker.JarMaker",
+                "-s",
+                "/home/brandon/Documents/BearUtils/src/jar_maker"
+
+                // "-m",
+                // "DbDo"
             ]
         }
     ]
