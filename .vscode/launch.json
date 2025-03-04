@@ -36,17 +36,19 @@
             "name": "JarMaker",
             "request": "launch",
             "mainClass": "jar_maker.JarMaker",
-            "projectName": "BearUtils_f015b59c",
-            // "cwd": "/home/brandon/Documents/DbDo",
-            "cwd": "/home/brandon/Documents/BearUtils/src/jar_maker",
+            "projectName": "BearUtils_3b07e300",
+            // "cwd": "/Users/brandon.fowler/Documents/Db-Do",
+            "cwd": "${workspaceFolder}/src/jar_maker",
             "args": [
                 "-m",
                 "jar_maker.JarMaker",
                 "-s",
-                "/home/brandon/Documents/BearUtils/src/jar_maker"
+                "/Users/brandon.fowler/Documents/BearUtils/src/jar_maker"
 
                 // "-m",
-                // "DbDo"
+                // "DbDo",
+                // "-s",
+                // "/Users/brandon.fowler/Documents/Db-Do"
             ]
         }
     ]

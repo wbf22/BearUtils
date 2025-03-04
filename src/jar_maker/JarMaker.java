@@ -76,7 +76,7 @@ public class JarMaker {
             String name = parsedArgs.get("-n");
             String sourcesString = parsedArgs.get("-s");
             if (sourcesString == null) sourcesString = System.getProperty("user.dir");
-            if (sourcesString.contains(".")) throw new IllegalArgumentException("Can't recognize src path '.'");
+            if (sourcesString.startsWith(".")) sourcesString = System.getProperty("user.dir") + sourcesString.substring(1);
             List<String> sources = Arrays.asList(sourcesString.split(","));
 
 
@@ -86,6 +86,7 @@ public class JarMaker {
             // Compile Java files
             List<String> files = sources.stream()
                 .flatMap(sourceDir -> getFilesInDirectoryRecursively(sourceDir, null).stream())
+                .filter(file -> !file.contains(".git"))
                 .toList();
             List<String> javaFiles = files.stream()
                 .filter(file -> file.endsWith(".java"))
@@ -125,20 +126,22 @@ public class JarMaker {
 
             // copy resources to bin
             files.stream()
-                .filter(file -> !file.endsWith(".java"))
+                .filter(file -> !file.endsWith(".java") && ! file.endsWith(".jar"))
                 .forEach(file -> {
                     try {
                         Path fullPath = Paths.get(file);
-                        Path parentPath = fullPath;
-                        while (parentPath.getParent() != null) {
-                            parentPath = parentPath.getParent();
+                        if (!fullPath.getFileName().toString().equals(jarName)) {
+                            Path parentPath = fullPath;
+                            while (parentPath.getParent() != null) {
+                                parentPath = parentPath.getParent();
+                            }
+                            Path relativePath = parentPath.relativize(fullPath);
+                            Path newPath = Paths.get("bin", relativePath.getParent().toString());
+                            Files.createDirectories(newPath);
+                            Path newFile = Paths.get("bin", relativePath.toString());
+                            Files.deleteIfExists(newFile);
+                            Files.copy(Paths.get(file), newFile);
                         }
-                        Path relativePath = parentPath.relativize(fullPath);
-                        Path newPath = Paths.get("bin", relativePath.getParent().toString());
-                        Files.createDirectories(newPath);
-                        Path newFile = Paths.get("bin", relativePath.toString());
-                        Files.deleteIfExists(newFile);
-                        Files.copy(Paths.get(file), newFile);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -150,10 +153,15 @@ public class JarMaker {
 
                     // copy dependencies to bin
                     Path jarFile = Paths.get(jar);
-                    Files.copy(jarFile, Path.of("bin/" + jarFile.getFileName()));
+                    Path copyPath =  Path.of("bin/" + jarFile.getFileName());
+                    Files.copy(jarFile, copyPath);
 
                     // extract dependencies
                     runProcess("jar xf " + jarFile.getFileName(), "bin");
+
+                    // remove jar
+                    Files.deleteIfExists(copyPath);
+
                     System.out.println("Found jar in src folder: " + jar);
                     System.out.println("Combining with jar as a dependency");
 
