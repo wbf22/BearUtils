@@ -1,34 +1,23 @@
-{
-    "id": "chatcmpl-AbEYGsYVGODcqnS352SwZUkPYhOyI",
-    "object": "chat.completion",
-    "created": 1733437436,
-    "model": "gpt-3.5-turbo-0125",
-    "choices": [
-        {
-            "index": 0,
-            "message": {
-                "role": "assistant",
-                "content": "In a terminal, you can set the color of text and background by using ANSI escape codes. These codes are special sequences of characters that can be printed to the terminal to change the appearance of text. \n\nTo set the color of text, you can use the following escape codes:\n- `\\033[31m` for red text\n- `\\033[32m` for green text\n- `\\033[33m` for yellow text\n- `\\033[34m` for blue text\n- and so on...\n\nTo set the background color, you can use the following escape codes:\n- `\\033[41m` for red background\n- `\\033[42m` for green background\n- `\\033[43m` for yellow background\n- `\\033[44m` for blue background\n- and so on...\n\nTo reset the colors back to the default, you can use `\\033[0m`.\n\nHere is an example code snippet in Python to print \"Hello, World!\" in red text on a green background:\n\n```python\nprint(\"\\033[31;42mHello, World!\\033[0m\")\n```\n\nKeep in mind that not all terminals support all ANSI escape codes, so you may need to test them in different terminal emulators. Additionally, libraries like ncurses provide more advanced features for color handling in terminal applications.",
-                "refusal": null
-            },
-            "logprobs": null,
-            "finish_reason": "stop"
-        }
-    ],
-    "usage": {
-        "prompt_tokens": 507,
-        "completion_tokens": 274,
-        "total_tokens": 781,
-        "prompt_tokens_details": {
-            "cached_tokens": 0,
-            "audio_tokens": 0
-        },
-        "completion_tokens_details": {
-            "reasoning_tokens": 0,
-            "audio_tokens": 0,
-            "accepted_prediction_tokens": 0,
-            "rejected_prediction_tokens": 0
-        }
-    },
-    "system_fingerprint": null
-}
+brandon.gpt.Main$RestClient$RestClientException: Request failed
+        at brandon.gpt.Main$RestClient.makeRequest(Main.java:524)
+        at brandon.gpt.Main$RestClient.post(Main.java:454)
+        at brandon.gpt.Main.main(Main.java:231)
+Caused by: java.lang.StringIndexOutOfBoundsException: String index out of range: 0
+        at java.base/java.lang.StringLatin1.charAt(StringLatin1.java:48)
+        at java.base/java.lang.String.charAt(String.java:1512)
+        at brandon.gpt.Main$Serializer.getObjectFromString(Main.java:1161)
+        at brandon.gpt.Main$Serializer.getObjectFromString(Main.java:1188)
+        at brandon.gpt.Main$Serializer.jsonStringToMap(Main.java:1147)
+        at brandon.gpt.Main$Serializer.getObjectFromString(Main.java:1162)
+        at brandon.gpt.Main$Serializer.jsonStringToMap(Main.java:1147)
+        at brandon.gpt.Main$Serializer.getObjectFromString(Main.java:1162)
+        at brandon.gpt.Main$Serializer.getObjectFromString(Main.java:1188)
+        at brandon.gpt.Main$Serializer.jsonStringToMap(Main.java:1147)
+        at brandon.gpt.Main$Serializer.fromJson(Main.java:630)
+        at brandon.gpt.Main.lambda$0(Main.java:170)
+        at brandon.gpt.Main$RestClient.makeRequest(Main.java:521)
+        ... 2 more
+
+Status Code: 200
+Response: 
+{  "id": "chatcmpl-B9xaDe7CByTTrCBT9nI3PYjaPKAGe",  "object": "chat.completion",  "created": 1741713689,  "model": "gpt-3.5-turbo-0125",  "choices": [    {      "index": 0,      "message": {        "role": "assistant",        "content": "The recommended way to make API calls in a React app when the page is loaded is to use the useEffect hook provided by React. You can use useEffect to make the API call when the component mounts.\n\nHere's an example of how you can make an API call when the component mounts using the useEffect hook:\n\n```jsx\nimport React, { useEffect } from 'react';\n\nconst YourComponent = () => {\n  useEffect(() => {\n    const fetchData = async () => {\n      try {\n        const response = await fetch('https://api.example.com/data');\n        const data = await response.json();\n        console.log(data);\n      } catch (error) {\n        console.error(error);\n      }\n    };\n\n    fetchData();\n  }, []);\n\n  return (\n    <div>\n      {/* Your component JSX here */}\n    </div>\n  );\n};\n\nexport default YourComponent;\n```\n\nIn the above example, the useEffect hook is used to make an API call to 'https://api.example.com/data' when the component mounts. The empty dependency array [] passed as the second argument to useEffect ensures that the API call is made only once when the component mounts.\n\nYou can also pass dependencies to useEffect if you want the API call to be made whenever those dependencies change.",        "refusal": null,        "annotations": []      },      "logprobs": null,      "finish_reason": "stop"    }  ],  "usage": {    "prompt_tokens": 36,    "completion_tokens": 251,    "total_tokens": 287,    "prompt_tokens_details": {      "cached_tokens": 0,      "audio_tokens": 0    },    "completion_tokens_details": {      "reasoning_tokens": 0,      "audio_tokens": 0,      "accepted_prediction_tokens": 0,      "rejected_prediction_tokens": 0    }  },  "service_tier": "default",  "system_fingerprint": null}
