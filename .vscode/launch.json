@@ -36,14 +36,14 @@
             "name": "JarMaker",
             "request": "launch",
             "mainClass": "jar_maker.JarMaker",
-            "projectName": "BearUtils_3b07e300",
+            "projectName": "BearUtils_f015b59c",
             // "cwd": "/Users/brandon.fowler/Documents/Db-Do",
             "cwd": "${workspaceFolder}/src/jar_maker",
             "args": [
                 "-m",
                 "jar_maker.JarMaker",
                 "-s",
-                "/Users/brandon.fowler/Documents/BearUtils/src/jar_maker"
+                "/home/brandon/Documents/BearUtils/src/jar_maker"
 
                 // "-m",
                 // "DbDo",

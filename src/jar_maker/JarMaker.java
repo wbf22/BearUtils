@@ -120,7 +120,7 @@ public class JarMaker {
                 .toList();
             
             // compile classes
-            StringBuilder compileCommand = new StringBuilder("javac -d bin ");
+            StringBuilder compileCommand = new StringBuilder("javac -Xlint:deprecation -d bin ");
             for (String javaFile : javaFiles)  compileCommand.append(javaFile).append(" ");
             runProcess(compileCommand.toString()); // javac -d bin src/jar_maker/JarMaker.java
 
@@ -197,10 +197,11 @@ public class JarMaker {
         processBuilder.command("bash", "-c", command);
         if (directory != null) processBuilder.directory(new File(directory));
         Process process = processBuilder.start();
-        process.waitFor();
+        int exitCode = process.waitFor();
 
         String error = new String(process.getErrorStream().readAllBytes());
-        if (!error.isBlank()) throw new RuntimeException(error);
+        if (exitCode != 0) throw new RuntimeException(error);
+        if (!error.isBlank()) System.out.println(error);
         String out = new String(process.getInputStream().readAllBytes());
         if (!out.isBlank()) System.out.println(out);
     }
