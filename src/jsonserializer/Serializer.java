@@ -18,7 +18,6 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.Temporal;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -601,30 +600,33 @@ public class Serializer {
         else if (valueString.charAt(0) == '[') {
             // remove outer brackets
             valueString = valueString.substring(1, valueString.length()-1);
+            
+            // if not empty process
+            List<Object> list = new ArrayList<>();
+            if (!valueString.isEmpty()) {
 
-            // split by commas
-            List<String> values = new ArrayList<>();
-            int openBrackets = 0;
-            int j = 0;
-            for (int i = 0; i < valueString.length(); i++) {
-
-                if (isNonEscapedQuote(valueString, i)) i = jumpToEndOfQuote(valueString, i);
-                if (valueString.charAt(i) == '[' || valueString.charAt(i) == '{') openBrackets++;
-                if (valueString.charAt(i) == ']' || valueString.charAt(i) == '}') openBrackets--;
-
-                if (valueString.charAt(i) == ',' && openBrackets == 0) {
-                    values.add(valueString.substring(j, i));
-                    j = i+1;
+                // split by commas
+                List<String> values = new ArrayList<>();
+                int openBrackets = 0;
+                int j = 0;
+                for (int i = 0; i < valueString.length(); i++) {
+    
+                    if (isNonEscapedQuote(valueString, i)) i = jumpToEndOfQuote(valueString, i);
+                    if (valueString.charAt(i) == '[' || valueString.charAt(i) == '{') openBrackets++;
+                    if (valueString.charAt(i) == ']' || valueString.charAt(i) == '}') openBrackets--;
+    
+                    if (valueString.charAt(i) == ',' && openBrackets == 0) {
+                        values.add(valueString.substring(j, i));
+                        j = i+1;
+                    }
+                }
+                values.add(valueString.substring(j));
+    
+                // convert each value
+                for (String val : values) {
+                    list.add(getObjectFromString(val));
                 }
             }
-            values.add(valueString.substring(j));
-
-            // convert each value
-            List<Object> list = new ArrayList<>();
-            for (String val : values) {
-                list.add(getObjectFromString(val));
-            }
-
             value = list;
         }
         else if (isNonEscapedQuote(valueString, 0)) {
@@ -921,7 +923,5 @@ public class Serializer {
 
     }
 }
-
-
 
 
